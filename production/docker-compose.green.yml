@@ -1,0 +1,4 @@
+services:
+  traefik:
+    volumes:
+      - "./traefik/dynamic/green.yml:/etc/traefik/dynamic/active.yml:ro"

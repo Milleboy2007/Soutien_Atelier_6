@@ -1,0 +1,27 @@
+services:
+  traefik:
+    image: traefik:v3.6
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true" # Ne pas faire ça en production !!
+      - "--entrypoints.web.address=:80"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "8090:8080"
+    volumes:
+      - "./traefik/dynamic/base.yml:/etc/traefik/dynamic/active.yml:ro"
+    depends_on:
+      - app_v1
+      - app_v2
+
+  app_v1:
+    image: atelier-app:v1
+    environment:
+      - BUG_RATE=0
+
+  app_v2:
+    image: atelier-app:v2
+    environment:
+      - BUG_RATE=0.5

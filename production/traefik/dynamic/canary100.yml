@@ -1,0 +1,25 @@
+http:
+  routers:
+    app:
+      rule: "PathPrefix(`/`)"
+      entryPoints: ["web"]
+      service: "canary"
+
+  services:
+    canary:
+      weighted:
+        services:
+          - name: "app_v1"
+            weight: 0
+          - name: "app_v2"
+            weight: 100
+
+    app_v1:
+      loadBalancer:
+        servers:
+          - url: "http://app_v1:3000"
+
+    app_v2:
+      loadBalancer:
+        servers:
+          - url: "http://app_v2:3000"

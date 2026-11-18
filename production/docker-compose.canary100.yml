@@ -1,0 +1,4 @@
+services:
+  traefik:
+    volumes:
+      - "./traefik/dynamic/canary100.yml:/etc/traefik/dynamic/active.yml:ro"

@@ -1,0 +1,4 @@
+services:
+  traefik:
+    volumes:
+      - "./traefik/dynamic/bigbang.yml:/etc/traefik/dynamic/active.yml:ro"
