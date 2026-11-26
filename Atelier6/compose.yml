@@ -1,0 +1,9 @@
+services:
+  bac-a-sable:
+    image: docker:dind
+    container_name: mon-docker-isole
+    privileged: true
+    environment:
+      # Désactive TLS en interne pour simplifier l'utilisation dans le conteneur
+      - DOCKER_TLS_CERTDIR=
+    # Aucun volume Windows n'est monté : vos fichiers restent inaccessibles
