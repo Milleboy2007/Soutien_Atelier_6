@@ -1,0 +1,219 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-demo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4cd55e6d-3c51-4e1c-bcc0-0a9d783d2e4c",
+      "name": "Demande recue",
+      "webhookId": "f3219419-1da6-4330-93f9-5aabe2f947c5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ntfy/support-demo",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "Nouvelle demande de soutien"
+            },
+            {
+              "name": "Markdown",
+              "value": "yes"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plaine",
+        "body": "={{ $json.markdown }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "2d63e061-4fd4-480f-8841-a55a8c6e9ba8",
+      "name": "Norifier l'équipe"
+    },
+    {
+      "parameters": {
+        "url": "http://demo-app",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "270e805b-9aa8-442d-ae22-d62a83866a6a",
+      "name": "Vérifier le service",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OLLAMA_API_URL }}/api/generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "={{ $env.OLLAMA_MODEL }}"
+            },
+            {
+              "name": "stream",
+              "value": "={{ false }}"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ \"Tu es un agent de soutien technique de RapidoBouffe.\\n\" \n\n+ \"Réponds uniquement en Markdown, sans bloc de code.\\n\\n\" \n\n+ \"Message de l'usager :\\n\" + $('Demande recue').item.json.body.message + \"\\n\\n\" \n\n+ \"État du service : code HTTP \" + $json.statusCode + \"\\n\\n\" \n\n+ \"Rédige un billet avec exactement ces sections :\\n\" \n\n+ \"# Résumé\\n# Catégorie\\n# Priorité\\n# Questions à poser\\n# Hypothèse\\n\" }} "
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "f1e14f2c-4728-4d65-9bb9-9be255dee0a0",
+      "name": "Préparer le billet (IA)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const demande = $('Demande recue').first().json.body.message; \n\nconst service = $('Vérifier le service').first().json.statusCode; \n\nconst texteIA = $input.first().json.response; \n\n \n\nconst markdown = `\n# Billet automatique\n\n- Reçu : ${new Date().toISOString()}\n\n- Message : ${demande}\n\n- État du service : ${service}\n\n \n\n${texteIA}`; \n\n \n\nreturn { markdown }; "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "669e8002-c5be-40fe-b9df-840d9ba15bf6",
+      "name": "Mettre en forme"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ntfy/support-demo",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Title",
+              "value": "Service en panne"
+            },
+            {
+              "name": "Markdown",
+              "value": "yes"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plaine",
+        "body": "={{\"# Panne du service \\n ## Priorité: urgent \\n ## Message de l usager \\n\"+ $json.body.message}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        160
+      ],
+      "id": "76ff3a54-cd05-4357-b278-2ea41ca49cf7",
+      "name": "Alerte : service en panne"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Demande recue": {
+      "main": [
+        [
+          {
+            "node": "Vérifier le service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier le service": {
+      "main": [
+        [
+          {
+            "node": "Préparer le billet (IA)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alerte : service en panne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le billet (IA)": {
+      "main": [
+        [
+          {
+            "node": "Mettre en forme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mettre en forme": {
+      "main": [
+        [
+          {
+            "node": "Norifier l'équipe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2f21ab59-799e-45b4-b82a-f7f584066dbf",
+  "meta": {
+    "instanceId": "00364032ceca67b18dfb0eac9b714478c627e2924f3e2a88d81bd261eb42d520"
+  },
+  "nodeGroups": [],
+  "id": "vdZBVSCllhXGzK6u",
+  "tags": []
+}

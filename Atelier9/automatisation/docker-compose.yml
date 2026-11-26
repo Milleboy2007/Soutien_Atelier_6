@@ -1,0 +1,49 @@
+# Atelier automatisation (n8n + ntfy + application de démonstration).
+# L'IA n'est PAS dans ce fichier : elle est hébergée par le Cégep et appelée
+# par requête HTTP. Dans n8n, utiliser :
+#   URL     : http://10.10.0.250:11434/api/generate   (ou {{ $env.OLLAMA_API_URL }})
+#   Modèle  : llama3.2:1b                  (ou {{ $env.OLLAMA_MODEL }})
+name: automatisation
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+      - GENERIC_TIMEZONE=America/Montreal
+      - N8N_DIAGNOSTICS_ENABLED=false
+      # Accès à l'interface par l'adresse IP de la VM (http, sans HTTPS)
+      - N8N_SECURE_COOKIE=false
+      # IA partagée, accessible dans les nœuds via {{ $env.OLLAMA_API_URL }}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - OLLAMA_API_URL=http://10.10.0.250:11434
+      - OLLAMA_MODEL=llama3.2:1b
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - ntfy
+      - demo-app
+
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    command: ["serve"]
+    ports:
+      - "8085:80"
+    volumes:
+      - ntfy_data:/var/cache/ntfy
+    environment:
+      - NTFY_BASE_URL=http://localhost:8085
+
+  demo-app:
+    image: traefik/whoami:latest
+    ports:
+      - "3002:80"
+
+volumes:
+  n8n_data:
+  ntfy_data:
